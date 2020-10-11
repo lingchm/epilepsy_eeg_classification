@@ -3,7 +3,7 @@
 # EEG epilepsy classification
 # preprocessing
 #
-# @author Jintian Lu, Lingchao Mao
+# @author Jintian Lyu, Lingchao Mao
 # @date 10/11/2020
 ######################################################################
 import os
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # import plotly.plotly as py
 import mne
 
-folder = 'E:\isye6740\project\chb-mit-scalp-eeg-database-1.0.0\chb01'
+folder = 'E:\Eeg_Raw\chb01'
 file = os.path.join(folder, 'chb01_01.edf')
 
 # Method 1 (7s per file)
