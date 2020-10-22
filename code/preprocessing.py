@@ -32,22 +32,22 @@ def eeg_features(data):
     power, power_ratio = pyeeg.bin_power(data, Band, Fs)
     f, P = welch(data, fs=Fs, window='hanning', noverlap=0, nfft=int(256.))       # Signal power spectrum
     area_freq = cumtrapz(P, f, initial=0)
-    res[0] = np.sqrt(np.sum(np.power(data, 2)) / data.shape[0])  # amplitude RMS
-    res[1] = statistics.stdev(data)**2                  # variance
-    res[2] = kurtosis(data)                             # kurtosis
-    res[3] = skew(data)                                 # skewness
-    res[4] = max(data)                                  # max amplitude
-    res[5] = min(data)                                  # min amplitude
-    res[6] = len(argrelextrema(data, np.greater)[0])    # number of local extrema or peaks
-    res[7] = ((data[:-1] * data[1:]) < 0).sum()         # number of zero crossings
-    res[8] = pyeeg.hfd(data, Kmax)                      # Higuchi Fractal Dimension
-    res[9] = pyeeg.pfd(data)                            # Petrosian Fractal Dimension
-    res[10] = pyeeg.hurst(data)                          # Hurst exponent
-    res[11] = pyeeg.spectral_entropy(data, Band, Fs, Power_Ratio=power_ratio) # spectral entropy (1.21s)
-    res[12] = area_freq[-1]                                # total power
-    res[13] = f[np.where(area_freq >= res[12] / 2)[0][0]]  # median frequency
-    res[14] = f[np.argmax(P)]                                 # peak frequency
-    res[15], res[16] = pyeeg.hjorth(data)                  # Hjorth mobility and complexity
+    res[0] = np.sqrt(np.sum(np.power(data, 2)) / data.shape[0])                   # amplitude RMS
+    res[1] = statistics.stdev(data)**2                                            # variance
+    res[2] = kurtosis(data)                                                       # kurtosis
+    res[3] = skew(data)                                                           # skewness
+    res[4] = max(data)                                                            # max amplitude
+    res[5] = min(data)                                                            # min amplitude
+    res[6] = len(argrelextrema(data, np.greater)[0])                              # number of local extrema or peaks
+    res[7] = ((data[:-1] * data[1:]) < 0).sum()                                   # number of zero crossings
+    res[8] = pyeeg.hfd(data, Kmax)                                                # Higuchi Fractal Dimension
+    res[9] = pyeeg.pfd(data)                                                      # Petrosian Fractal Dimension
+    res[10] = pyeeg.hurst(data)                                                   # Hurst exponent
+    res[11] = pyeeg.spectral_entropy(data, Band, Fs, Power_Ratio=power_ratio)     # spectral entropy (1.21s)
+    res[12] = area_freq[-1]                                                       # total power
+    res[13] = f[np.where(area_freq >= res[12] / 2)[0][0]]                         # median frequency
+    res[14] = f[np.argmax(P)]                                                     # peak frequency
+    res[15], res[16] = pyeeg.hjorth(data)                                         # Hjorth mobility and complexity
     res[17] = power_ratio[0]
     res[18] = power_ratio[1]
     res[19] = power_ratio[2]
@@ -99,7 +99,7 @@ def eeg_preprocessing(file, seizures, epoch_length = 10, step_size = 1, start_ti
 
     # formatting
     feature_names = ["rms", "variance", "kurtosis", "skewness", "max_amp", "min_amp", "n_peaks", "n_crossings", 
-        "hfd", "hurst_exp", "spectral_entropy", "total_power", "median_freq", "peak_freq", 
+        "hfd", "pfd", "hurst_exp", "spectral_entropy", "total_power", "median_freq", "peak_freq", 
         "hjorth_mobility", "hjorth_complexity", "power_1hz", "power_5hz", "power_10hz", "power_15hz", "power_20hz"]
 
     column_names = ["start_time"]
@@ -153,7 +153,7 @@ seizures =	{
 for filename in files:
     file = os.path.join(folder, filename + '.edf')
     res = eeg_preprocessing(file, seizures)
-    res.to_csv(os.path.join(folder, filename + '.csv'), index=False) 
+    res.to_csv(os.path.join("data\preprocessed", filename + '.csv'), index=False) 
 
 print("done")
 

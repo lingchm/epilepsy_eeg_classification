@@ -30,45 +30,73 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA, LinearDiscriminantAnalysis as LDA
+from sklearn.feature_selection import f_regression, mutual_info_regression
 
 ## read in data
 files = ["chb01_03"]
-data = pd.read_csv('data/chb01_03.csv')
+data = pd.read_csv('data/preprocessed/chb01_03.csv')
 X = data.loc[:, data.columns != "seizure"]
+X = X.loc[:, X.columns != "start_time"]
 Y = data['seizure']
+feature_names = X.columns.tolist()
 
 # visualize class distribution
 ax = sn.countplot(Y,label="Count")
 non_seizure, seizure = Y.value_counts()
 print('The number of trials for the non-seizure class is:', non_seizure)
 print('The number of trials for the seizure class is:', seizure)
-plt.show()
+# plt.show()
 
 # normalization
 X = preprocessing.scale(X)
 
+'''
 # PCA
-pca = PCA(n_components = 2)
+pca = PCA(n_components = 10)
 X = pca.fit_transform(X)
 print("PCA explained variance is: ", pca.explained_variance_ratio_)
+'''
 
 # split into testing and training
 # TO DO need to make sure equal proportion??
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2)
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = 0.2)
+non_seizure, seizure = y_train.value_counts()
+print('The number of trials for the non-seizure class in training is:', non_seizure)
+print('The number of trials for the seizure class in training is:', seizure)
+non_seizure, seizure = y_test.value_counts()
+print('The number of trials for the non-seizure class in testing is:', non_seizure)
+print('The number of trials for the seizure class in testing is:', seizure)
 
 # feature selection
-select_feature = SelectKBest(k=10).fit(X_train, y_train)
+select_feature = SelectKBest(k=40).fit(X_train, y_train)
+print("Selected features: ", [feature_names[val] for val in select_feature.get_support(indices=True).tolist()])
+mi = mutual_info_regression(X, Y)
+f_test, _ = f_regression(X, Y)
 
 # Oversampling????
-from imblearn.over_sampling import SMOTE
-sm = SMOTE(ratio = 1.0)
-X_train_oversamp, y_train_oversamp = sm.fit_sample(X_train, y_train)
-
+#from imblearn.over_sampling import SMOTE
+#sm = SMOTE(ratio = 1.0)
+#X_train_oversamp, y_train_oversamp = sm.fit_sample(X_train, y_train)
 
 ##### Modeling
+# neural networks
+mlp = MLPClassifier(activation='relu', alpha=0.0001, batch_size='auto', beta_1=0.9,
+       beta_2=0.999, early_stopping=False, epsilon=1e-08,
+       hidden_layer_sizes=(10, 10), learning_rate='constant',
+       learning_rate_init=0.001, max_iter=500, momentum=0.9,
+       nesterovs_momentum=True, power_t=0.5, random_state=None,
+       shuffle=True, solver='adam', tol=0.0001, validation_fraction=0.1,
+       verbose=False, warm_start=False)
+mlp.fit(X_train, y_train)
+score = mlp.score(X_test, y_test)
+y_pred = mlp.predict(X_test)
+print("Neural Network MLP", "score : ", score)
+print(confusion_matrix(y_test, y_pred))
+
+
+# other models
 names = ["Nearest Neighbors", "Linear SVM", "Gaussian Process",
-         "Decision Tree", "Random Forest", "AdaBoost",
-         "Naive Bayes"]
+         "Decision Tree", "Random Forest", "AdaBoost", "Naive Bayes"]
 
 classifiers = [
     KNeighborsClassifier(2),
@@ -80,17 +108,17 @@ classifiers = [
     GaussianNB(),
     XGBClassifier()]
 
-clf_score=[]
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    for name, clf in zip(names, classifiers):
-        clf.fit(X_train, y_train)
-        score = clf.score(X_test, y_test)
-        clf_score.append([score,name])
-        accuracies = cross_val_score(estimator = classifier, X = X_train, y = y_train, cv = 10,)
-        print(clf, " mean accuracy is: ", accuracies.mean())
-        print(confusion_matrix(y_test, y_pred))
-        print(classification_report(y_test, y_pred, target_names=['Non-seizure', 'Seizure']))
+classifier_score=[]
+for name, classifier in zip(names, classifiers):
+    classifier.fit(X_train, y_train)
+    score = classifier.score(X_test, y_test)
+    print(classifier, "; score : ", score)
+    classifier_score.append([score,name])
+    y_pred = classifier.predict(X_test)
+    # accuracies = cross_val_score(estimator = classifier, X = X_train, y = y_train, cv = 10,)
+    # print("mean accuracy : ", accuracies.mean())
+    print(confusion_matrix(y_test, y_pred))
+    # print(classification_report(y_test, y_pred, target_names=['Non-seizure', 'Seizure']))
 
 # LDA
 lda = LDA(n_components = 2)
@@ -108,38 +136,4 @@ y_pred = classifier.predict(X_test_lda)
 cm = confusion_matrix(y_test, y_pred)
 print(classification_report(y_test, y_pred, target_names=['Non-seizure', 'Seizure']))
 
-
-# Neural Networks
-early_stop = keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0, patience=10,verbose=1, mode='auto')
-
-# Initialising the ANN
-clf_ann = Sequential()
-
-# Adding the input layer and the first hidden layer
-clf_ann.add(Dense(activation="relu", kernel_initializer="uniform", units=100, input_dim=178))
-clf_ann.add(BatchNormalization())
-clf_ann.add(Dropout(0.5))
-
-# Adding the second hidden layer
-clf_ann.add(Dense(activation="relu", kernel_initializer="uniform", units=100))
-clf_ann.add(BatchNormalization())
-clf_ann.add(Dropout(0.5))
-
-# Adding the output layer
-clf_ann.add(Dense(units=1, kernel_initializer="uniform",  activation="sigmoid"))
-
-# Compiling the ANN
-clf_ann.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
-
-# loss = 'categorical_crossentropy'
-# Fitting the ANN to the Training set
-clf_ann.fit(X_train, y_train, batch_size = 32,epochs = 100, validation_data=(X_test,y_test), callbacks=[early_stop])
-
-# Predicting the Test set results
-y_pred = clf_ann.predict(X_test)
-y_pred = (y_pred > 0.5)
-
-# Making the Confusion Matrix
-cm = confusion_matrix(y_test, y_pred)
-print(classification_report(y_test, y_pred, target_names=['Non-seizure', 'Seizure']))
 
