@@ -7,6 +7,7 @@
 # @date 10/11/2020
 ######################################################################
 import os
+import glob
 import mne
 import numpy as np
 import pandas as pd
@@ -83,19 +84,20 @@ def eeg_preprocessing(file, seizures, epoch_length = 10, step_size = 1, start_ti
             features.extend(eeg_features(temp[i]).tolist())
 
         # seizure flag for y
-        for seizure in seizures[filename]:
-            if start_time > seizure[0] and start_time < seizure[1]:
-                features.append(1)
-            elif start_time + epoch_length > seizure[0] and start_time + epoch_length < seizure[1]:
-                features.append(1)
-            else:
-                features.append(0)
+        if filename in seizures:  # if file has seizure
+            for seizure in seizures[filename]:
+                if start_time > seizure[0] and start_time < seizure[1]:
+                    features.append(1)
+                elif start_time + epoch_length > seizure[0] and start_time + epoch_length < seizure[1]:
+                    features.append(1)
+                else:
+                    features.append(0)
+        else:    
+            features.append(0)
 
         res.append(features)        
         start_time += step_size
         print("Section ", str(len(res)), "; start: ", start, " ; stop: ", stop)
-
-    # print("Total of ", str(len(res)), "epochs")
 
     # formatting
     feature_names = ["rms", "variance", "kurtosis", "skewness", "max_amp", "min_amp", "n_peaks", "n_crossings", 
@@ -111,7 +113,7 @@ def eeg_preprocessing(file, seizures, epoch_length = 10, step_size = 1, start_ti
     res = pd.DataFrame(res, columns=column_names)
 
     end = time.time()
-    print("Finished preprocessing ", file, f" took {end - start} seconds")
+    print("Finished preprocessing ", file, f" took {(end - start) / 60} minutes")
     return res
 
 
@@ -137,8 +139,8 @@ def eeg_visualize(raw, start_time, end_time):
 ####### Main
 # file path here
 folder = "E:\isye6740\project\chb-mit-scalp-eeg-database-1.0.0\chb01"
-files = ["chb01_03"]
-# files = ["chb01_04", "chb01_15","chb01_16","chb01_18","chb01_21","chb01_26"]
+files = [file for file in os.listdir(folder) if file.endswith(".edf")]
+print(files)
 
 seizures =	{
     "chb01_03": [[2996, 3036]], 
@@ -151,7 +153,8 @@ seizures =	{
 }
 
 for filename in files:
-    file = os.path.join(folder, filename + '.edf')
+    file = os.path.join(folder, filename)
+    filename = os.path.splitext(filename)[0]
     res = eeg_preprocessing(file, seizures)
     res.to_csv(os.path.join("data\preprocessed", filename + '.csv'), index=False) 
 

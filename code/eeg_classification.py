@@ -30,7 +30,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA, LinearDiscriminantAnalysis as LDA
-from sklearn.feature_selection import f_regression, mutual_info_regression
+from sklearn.feature_selection import f_classif, mutual_info_classif
 
 ## read in data
 files = ["chb01_03"]
@@ -68,10 +68,14 @@ print('The number of trials for the non-seizure class in testing is:', non_seizu
 print('The number of trials for the seizure class in testing is:', seizure)
 
 # feature selection
-select_feature = SelectKBest(k=40).fit(X_train, y_train)
-print("Selected features: ", [feature_names[val] for val in select_feature.get_support(indices=True).tolist()])
-mi = mutual_info_regression(X, Y)
-f_test, _ = f_regression(X, Y)
+select_feature1 = SelectKBest(k=40, score_func = f_classif).fit(X_train, y_train)
+X_train1 = select_feature1.transform(X_train)
+X_test1 = select_feature1.transform(X_test)
+print("Selected features (f-test): ", [feature_names[val] for val in select_feature1.get_support(indices=True).tolist()])
+select_feature2 = SelectKBest(k=40, score_func = mutual_info_classif).fit(X_train, y_train)
+X_train2 = select_feature2.transform(X_train)
+X_test2 = select_feature2.transform(X_train)
+print("Selected features (mutual info): ", [feature_names[val] for val in select_feature2.get_support(indices=True).tolist()])
 
 # Oversampling????
 #from imblearn.over_sampling import SMOTE
@@ -79,26 +83,17 @@ f_test, _ = f_regression(X, Y)
 #X_train_oversamp, y_train_oversamp = sm.fit_sample(X_train, y_train)
 
 ##### Modeling
-# neural networks
-mlp = MLPClassifier(activation='relu', alpha=0.0001, batch_size='auto', beta_1=0.9,
+names = ["MLP", "Nearest Neighbors", "Linear SVM", "Gaussian Process",
+         "Decision Tree", "Random Forest", "AdaBoost", "Naive Bayes"]
+
+classifiers = [
+    MLPClassifier(activation='relu', alpha=0.0001, batch_size='auto', beta_1=0.9,
        beta_2=0.999, early_stopping=False, epsilon=1e-08,
        hidden_layer_sizes=(10, 10), learning_rate='constant',
        learning_rate_init=0.001, max_iter=500, momentum=0.9,
        nesterovs_momentum=True, power_t=0.5, random_state=None,
        shuffle=True, solver='adam', tol=0.0001, validation_fraction=0.1,
-       verbose=False, warm_start=False)
-mlp.fit(X_train, y_train)
-score = mlp.score(X_test, y_test)
-y_pred = mlp.predict(X_test)
-print("Neural Network MLP", "score : ", score)
-print(confusion_matrix(y_test, y_pred))
-
-
-# other models
-names = ["Nearest Neighbors", "Linear SVM", "Gaussian Process",
-         "Decision Tree", "Random Forest", "AdaBoost", "Naive Bayes"]
-
-classifiers = [
+       verbose=False, warm_start=False),
     KNeighborsClassifier(2),
     SVC(kernel="linear", C=0.025),
     GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True),
@@ -110,11 +105,11 @@ classifiers = [
 
 classifier_score=[]
 for name, classifier in zip(names, classifiers):
-    classifier.fit(X_train, y_train)
-    score = classifier.score(X_test, y_test)
-    print(classifier, "; score : ", score)
+    classifier.fit(X_train1, y_train)
+    score = classifier.score(X_test1, y_test)
+    print(name, " score : ", score)
     classifier_score.append([score,name])
-    y_pred = classifier.predict(X_test)
+    y_pred = classifier.predict(X_test1)
     # accuracies = cross_val_score(estimator = classifier, X = X_train, y = y_train, cv = 10,)
     # print("mean accuracy : ", accuracies.mean())
     print(confusion_matrix(y_test, y_pred))
