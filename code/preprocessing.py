@@ -138,25 +138,25 @@ def eeg_visualize(raw, start_time, end_time):
 
 ####### Main
 # file path here
-folder = "E:\isye6740\project\chb-mit-scalp-eeg-database-1.0.0\chb01"
+folder = "E:\isye6740\project\chb-mit-scalp-eeg-database-1.0.0\chb03"
 files = [file for file in os.listdir(folder) if file.endswith(".edf")]
 print(files)
 
 seizures =	{
-    "chb01_03": [[2996, 3036]], 
-    "chb01_04": [[1467, 1494]],
-    "chb01_15": [[1732, 1772]], 
-    "chb01_16": [[1015, 1066]],
-    "chb01_18": [[1720, 1810]],
-    "chb01_21": [[327, 420]],
-    "chb01_26": [[1862, 1963]]
+    "chb03_01": [[362, 414]], 
+    "chb03_02": [[731, 796]],
+    "chb03_03": [[432, 501]], 
+    "chb03_04": [[2162, 2214]],
+    "chb03_34": [[1982, 2029]],
+    "chb03_35": [[2592, 2656]],
+    "chb03_36": [[1725, 1778]]
 }
 
 for filename in files:
     file = os.path.join(folder, filename)
     filename = os.path.splitext(filename)[0]
     res = eeg_preprocessing(file, seizures)
-    res.to_csv(os.path.join("data\preprocessed", filename + '.csv'), index=False) 
+    res.to_csv(os.path.join("data\chb03", filename + '.csv'), index=False) 
 
 print("done")
 
