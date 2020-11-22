@@ -30,35 +30,37 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA, LinearDiscriminantAnalysis as LDA
-from sklearn.feature_selection import f_classif, mutual_info_classif
+from sklearn.feature_selection import f_classif, mutual_info_classif, VarianceThreshold
 
-## read in data
-files = ["chb01_03"]
-data = pd.read_csv('data/preprocessed/chb01_03.csv')
+### read in data
+data = pd.read_csv('data/chb01.csv')
 X = data.loc[:, data.columns != "seizure"]
 X = X.loc[:, X.columns != "start_time"]
+X = X.loc[:, X.columns != "file ID"]
 Y = data['seizure']
 feature_names = X.columns.tolist()
 
-# visualize class distribution
-ax = sn.countplot(Y,label="Count")
+### visualize class distribution
 non_seizure, seizure = Y.value_counts()
 print('The number of trials for the non-seizure class is:', non_seizure)
 print('The number of trials for the seizure class is:', seizure)
-# plt.show()
 
-# normalization
-X = preprocessing.scale(X)
+### preprocessing
 
-'''
-# PCA
-pca = PCA(n_components = 10)
-X = pca.fit_transform(X)
-print("PCA explained variance is: ", pca.explained_variance_ratio_)
-'''
+# check zero variance features
+thresholder = VarianceThreshold(threshold=0)
+print("Variables Kept after removing features with 0 variance: ", thresholder.fit_transform(X).shape[1])
 
-# split into testing and training
-# TO DO need to make sure equal proportion??
+# highly correlated features
+corr = abs(X.corr())
+upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool))
+cols = [column for column in upper.columns if any(upper[column] < 0.9)]
+print("Variables Kept after removing features with corr > 0.9: ", len(cols)) 
+
+# normalize the dataset
+X = preprocessing.normalize(X)
+
+# split into testing and training TO DO need to make sure equal proportion??
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = 0.2)
 non_seizure, seizure = y_train.value_counts()
 print('The number of trials for the non-seizure class in training is:', non_seizure)
@@ -68,16 +70,22 @@ print('The number of trials for the non-seizure class in testing is:', non_seizu
 print('The number of trials for the seizure class in testing is:', seizure)
 
 # feature selection
-select_feature1 = SelectKBest(k=40, score_func = f_classif).fit(X_train, y_train)
+select_feature1 = SelectKBest(k=200, score_func = f_classif).fit(X_train, y_train)
 X_train1 = select_feature1.transform(X_train)
 X_test1 = select_feature1.transform(X_test)
 print("Selected features (f-test): ", [feature_names[val] for val in select_feature1.get_support(indices=True).tolist()])
-select_feature2 = SelectKBest(k=40, score_func = mutual_info_classif).fit(X_train, y_train)
+select_feature2 = SelectKBest(k=50, score_func = mutual_info_classif).fit(X_train, y_train)
 X_train2 = select_feature2.transform(X_train)
-X_test2 = select_feature2.transform(X_train)
+X_test2 = select_feature2.transform(X_test)
 print("Selected features (mutual info): ", [feature_names[val] for val in select_feature2.get_support(indices=True).tolist()])
 
-# Oversampling????
+# PCA
+pca = PCA(n_components = 50)
+X_train3 = pca.fit_transform(X_train)
+X_test3 = pca.transform(X_test)
+print("PCA explained variance is: ", np.sum(pca.explained_variance_ratio_))
+
+# Oversampling
 #from imblearn.over_sampling import SMOTE
 #sm = SMOTE(ratio = 1.0)
 #X_train_oversamp, y_train_oversamp = sm.fit_sample(X_train, y_train)
@@ -95,7 +103,7 @@ classifiers = [
        shuffle=True, solver='adam', tol=0.0001, validation_fraction=0.1,
        verbose=False, warm_start=False),
     KNeighborsClassifier(2),
-    SVC(kernel="linear", C=0.025),
+    SVC(kernel="rbf", C=0.025),
     GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True),
     DecisionTreeClassifier(max_depth=5),
     RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
@@ -105,15 +113,15 @@ classifiers = [
 
 classifier_score=[]
 for name, classifier in zip(names, classifiers):
-    classifier.fit(X_train1, y_train)
-    score = classifier.score(X_test1, y_test)
+    classifier.fit(X_train, y_train)
+    score = classifier.score(X_test, y_test)
     print(name, " score : ", score)
     classifier_score.append([score,name])
-    y_pred = classifier.predict(X_test1)
+    y_pred = classifier.predict(X_test)
     # accuracies = cross_val_score(estimator = classifier, X = X_train, y = y_train, cv = 10,)
     # print("mean accuracy : ", accuracies.mean())
     print(confusion_matrix(y_test, y_pred))
-    # print(classification_report(y_test, y_pred, target_names=['Non-seizure', 'Seizure']))
+    print(classification_report(y_test, y_pred))
 
 # LDA
 lda = LDA(n_components = 2)
