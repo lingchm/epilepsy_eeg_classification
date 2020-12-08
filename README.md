@@ -3,9 +3,9 @@
 epilepsy_eeg_classification is a python project that works with EEG data to classify epilepsy events. 
 
 In this repo you will find resources to:
-* Preprocess of raw EEG data
-* Extrat time domain and frequency domain features
-* Implementation of six popular ML classification models selected to tackle nonlinear and imbalanced data (MLP, KNN, Kernel SVM, Random Forest, AdaBoost, lasso-Logistic Regression)
+* Preprocessing of raw EEG data
+* Extration time domain and frequency domain features from EEG data
+* Implementation of five popular ML classification models selected to tackle nonlinear and imbalanced data (MLP, KNN, Kernel SVM, Random Forest, AdaBoost)
 
 ## Paper 
 This study is based on course project paper titled '
