@@ -30,8 +30,8 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 ### read in data
 multiple_patients = True
 ID = False
-input_file = "data/five_subjects_35.csv"
-output_file = "output/five_subjects_35_results.csv"
+input_file = "data/five_subjects.csv"
+output_file = "output/five_subjects_results.csv"
 
 # prepare data
 data = pd.read_csv(input_file)
